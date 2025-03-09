@@ -11,21 +11,84 @@ import (
 
 type QType uint16
 type QClass uint16
+type OPCODE uint8
+
+const (
+	QUERY OPCODE = iota
+	IQUERY
+	STATUS
+)
+
+type RCODE uint8
+
+const (
+	NO_ERROR RCODE = iota
+	FORMAT_ERROR
+	SERVER_FAILURE
+	NAME_ERROR
+	NOT_IMPLEMENTED
+	REFUSED
+)
 
 type Header struct {
 	ID                  uint16
 	IsQuery             bool
-	OPCODE              uint8
+	OPCODE              OPCODE
 	AuthoritativeAnswer bool
 	TrunCation          bool
 	RecursionDesired    bool
 	RecursionAvailable  bool
-	ResponseCode        uint8
+	ResponseCode        RCODE
 
 	QuestionCount uint16
 	AnswerCount   uint16
 	NSCount       uint16
 	ARCount       uint16
+}
+
+func ParseHeader(buf []byte) Header {
+	buffer := bytes.NewBuffer(buf)
+	id := make([]byte, 2)
+	buffer.Read(id)
+	parsedId := binary.BigEndian.Uint16(id)
+
+	flags := make([]byte, 2)
+	buffer.Read(flags)
+	flagsNumber := binary.BigEndian.Uint16(flags)
+
+	opcode := QUERY
+
+	if (flagsNumber & (1 << 11)) != 0 {
+		opcode = IQUERY
+	} else if (flagsNumber & (1 << 12)) != 0 {
+		opcode = STATUS
+	}
+
+	rcode := flagsNumber & (0b00000000_00001111)
+
+	count := make([]byte, 2)
+	buffer.Read(count)
+	questionCount := binary.BigEndian.Uint16(count)
+
+	buffer.Read(count)
+	answerCount := binary.BigEndian.Uint16(count)
+
+	buffer.Read(count)
+	nsCount := binary.BigEndian.Uint16(count)
+
+	buffer.Read(count)
+	arCount := binary.BigEndian.Uint16(count)
+
+	return Header{
+		ID:            parsedId,
+		OPCODE:        opcode,
+		ResponseCode:  RCODE(rcode),
+		IsQuery:       (flagsNumber & (1 << 15)) == 0,
+		QuestionCount: questionCount,
+		AnswerCount:   answerCount,
+		ARCount:       arCount,
+		NSCount:       nsCount,
+	}
 }
 
 func (header Header) String() string {
@@ -43,6 +106,8 @@ func (header Header) ToBinary() ([]byte, error) {
 	if !header.IsQuery {
 		flags |= uint16(1 << 15)
 	}
+	flags |= uint16(header.OPCODE) << 11
+	flags |= uint16(header.ResponseCode)
 
 	if err := binary.Write(buf, binary.BigEndian, flags); err != nil {
 		return nil, err
@@ -162,37 +227,6 @@ func main() {
 		conn.WriteTo(response.Bytes(), addr)
 	}
 
-}
-
-func ParseHeader(buf []byte) Header {
-	buffer := bytes.NewBuffer(buf)
-	id := make([]byte, 2)
-	buffer.Read(id)
-	parsedId := binary.BigEndian.Uint16(id)
-
-	flags := make([]byte, 2)
-	buffer.Read(flags)
-
-	count := make([]byte, 2)
-	buffer.Read(count)
-	questionCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	answerCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	nsCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	arCount := binary.BigEndian.Uint16(count)
-
-	return Header{
-		ID:            parsedId,
-		QuestionCount: questionCount,
-		AnswerCount:   answerCount,
-		ARCount:       arCount,
-		NSCount:       nsCount,
-	}
 }
 
 func ParseMessage(buf []byte) (Header, Question) {
