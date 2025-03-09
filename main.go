@@ -4,13 +4,31 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"strings"
 )
 
-type QType uint16
 type QClass uint16
+
+const (
+	IN  QClass = 1
+	CS  QClass = 2
+	CH  QClass = 3
+	HS  QClass = 4
+	ANY QClass = 255
+)
+
+type QType uint16
+
+const (
+	A  QType = 1
+	NS QType = 2
+	MD QType = 3
+	MF QType = 4
+)
+
 type OPCODE uint8
 
 const (
@@ -134,6 +152,39 @@ type Question struct {
 	Class  QClass
 }
 
+func ParseQuestion(buf []byte) Question {
+	buffer := bytes.NewBuffer(buf)
+	labels := []string{}
+	for {
+		length, err := buffer.ReadByte()
+		if length == 0 {
+			break
+		}
+		if err != nil {
+			os.Exit(1)
+		}
+		label := make([]byte, length)
+		_, err = buffer.Read(label)
+		if err != nil {
+			os.Exit(1)
+		}
+		labels = append(labels, string(label))
+	}
+	buf = make([]byte, 2)
+	buffer.Read(buf)
+	qtype := binary.BigEndian.Uint16(buf)
+
+	buf = make([]byte, 2)
+	buffer.Read(buf)
+	qclass := binary.BigEndian.Uint16(buf)
+
+	return Question{
+		Labels: labels,
+		Type:   QType(qtype),
+		Class:  QClass(qclass),
+	}
+}
+
 func (question Question) String() string {
 	return fmt.Sprintf("question: %s type: %d class: %d", strings.Join(question.Labels, "."), question.Type, question.Class)
 }
@@ -231,36 +282,7 @@ func main() {
 
 func ParseMessage(buf []byte) (Header, Question) {
 	header := ParseHeader(buf[:4*3])
-
-	question := buf[4*3:]
-
-	buffer := bytes.NewBuffer(question)
-	labels := []string{}
-	for {
-		length, err := buffer.ReadByte()
-		if length == 0 {
-			break
-		}
-		if err != nil {
-			os.Exit(1)
-		}
-		label := make([]byte, length)
-		_, err = buffer.Read(label)
-		if err != nil {
-			os.Exit(1)
-		}
-		labels = append(labels, string(label))
-	}
-	buf = make([]byte, 2)
-	buffer.Read(buf)
-	qtype := binary.BigEndian.Uint16(buf)
-
-	buf = make([]byte, 2)
-	buffer.Read(buf)
-
-	return header, Question{
-		Labels: labels,
-		Type:   QType(qtype),
-		Class:  QClass(qtype),
-	}
+	question := ParseQuestion(buf[4*3:])
+	slog.Info("question", "type", question.Type)
+	return header, question
 }

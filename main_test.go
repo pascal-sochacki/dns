@@ -303,3 +303,99 @@ func TestHeaderToBinary(t *testing.T) {
 		}
 	}
 }
+
+func TestParseQuestion(t *testing.T) {
+	tests := []struct {
+		input  []byte
+		expect Question
+	}{
+		{
+			input: []byte{
+				0b00000100, 0b01100010, 0b01101100, 0b01101111, 0b01100111,
+				0b00000111, 0b01100101, 0b01111000, 0b01100001, 0b01101101, 0b01110000, 0b01101100, 0b01100101,
+				0b00000011, 0b01100011, 0b01101111, 0b01101101,
+
+				0b00000000,
+
+				0b00000000,
+				0b00000001,
+
+				0b00000000,
+				0b00000001,
+			},
+			expect: Question{
+				Class: IN,
+				Type:  A,
+				Labels: []string{
+					"blog",
+					"example",
+					"com",
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		is := ParseQuestion(test.input)
+		if is.Class != test.expect.Class {
+			t.Fatalf("class dont match")
+		}
+		if is.Type != test.expect.Type {
+			t.Fatalf("type dont match")
+		}
+		if len(is.Labels) != len(test.expect.Labels) {
+			t.Fatalf("label length dont match")
+		}
+		for i := 0; i < len(is.Labels); i++ {
+			if is.Labels[i] != test.expect.Labels[i] {
+				t.Fatalf("label not match is: %s should: %s", is.Labels[i], test.expect.Labels[i])
+			}
+
+		}
+
+	}
+}
+
+func TestToBinary(t *testing.T) {
+	tests := []struct {
+		input  Question
+		expect []byte
+	}{
+		{
+			input: Question{
+				Labels: []string{
+					"blog",
+					"example",
+					"com",
+				},
+				Class: IN,
+			},
+			expect: []byte{
+				0b00000100, 0b01100010, 0b01101100, 0b01101111, 0b01100111,
+				0b00000111, 0b01100101, 0b01111000, 0b01100001, 0b01101101, 0b01110000, 0b01101100, 0b01100101,
+				0b00000011, 0b01100011, 0b01101111, 0b01101101,
+
+				0b00000000,
+
+				0b00000000,
+				0b00000000,
+
+				0b00000000,
+				0b00000001,
+			},
+		},
+	}
+	for _, test := range tests {
+		is, err := test.input.ToBinary()
+		if err != nil {
+			t.Fatalf("should not error")
+		}
+		if string(is) != string(test.expect) {
+			t.Logf("is:")
+			for _, n := range is {
+				t.Logf("%08b ", n) // prints 00000000 11111101
+			}
+			t.Fatalf("dont match")
+
+		}
+	}
+}
