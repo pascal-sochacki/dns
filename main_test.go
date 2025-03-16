@@ -1,11 +1,16 @@
 package main
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+
+	"github.com/pascal-sochacki/dns/internal/parser"
+)
 
 func TestParseHeader(t *testing.T) {
 	tests := []struct {
 		input  []byte
-		expect Header
+		expect parser.Header
 	}{
 		{
 			input: []byte{
@@ -16,11 +21,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000011,
 				0b00000000, 0b00000100,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       true,
-				ResponseCode:  NO_ERROR,
-				OPCODE:        QUERY,
+				ResponseCode:  parser.NO_ERROR,
+				OPCODE:        parser.QUERY,
 				QuestionCount: 1,
 				AnswerCount:   2,
 				NSCount:       3,
@@ -36,11 +41,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  FORMAT_ERROR,
-				OPCODE:        IQUERY,
+				ResponseCode:  parser.FORMAT_ERROR,
+				OPCODE:        parser.IQUERY,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -56,11 +61,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  SERVER_FAILURE,
-				OPCODE:        STATUS,
+				ResponseCode:  parser.SERVER_FAILURE,
+				OPCODE:        parser.STATUS,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -76,11 +81,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  NAME_ERROR,
-				OPCODE:        STATUS,
+				ResponseCode:  parser.NAME_ERROR,
+				OPCODE:        parser.STATUS,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -96,11 +101,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				OPCODE:        STATUS,
-				ResponseCode:  NOT_IMPLEMENTED,
+				OPCODE:        parser.STATUS,
+				ResponseCode:  parser.NOT_IMPLEMENTED,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -116,11 +121,11 @@ func TestParseHeader(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			expect: Header{
+			expect: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				OPCODE:        STATUS,
-				ResponseCode:  REFUSED,
+				OPCODE:        parser.STATUS,
+				ResponseCode:  parser.REFUSED,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -129,7 +134,7 @@ func TestParseHeader(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		is := ParseHeader(test.input)
+		is := parser.ParseHeader(bytes.NewBuffer(test.input))
 
 		if is.ID != test.expect.ID {
 			t.Fatalf("id dont match is %d wanted %d", is.ID, test.expect.ID)
@@ -161,7 +166,7 @@ func TestParseHeader(t *testing.T) {
 func TestHeaderToBinary(t *testing.T) {
 	tests := []struct {
 		expect []byte
-		input  Header
+		input  parser.Header
 	}{
 		{
 			expect: []byte{
@@ -172,11 +177,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000011,
 				0b00000000, 0b00000100,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       true,
-				ResponseCode:  NO_ERROR,
-				OPCODE:        QUERY,
+				ResponseCode:  parser.NO_ERROR,
+				OPCODE:        parser.QUERY,
 				QuestionCount: 1,
 				AnswerCount:   2,
 				NSCount:       3,
@@ -192,11 +197,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  FORMAT_ERROR,
-				OPCODE:        IQUERY,
+				ResponseCode:  parser.FORMAT_ERROR,
+				OPCODE:        parser.IQUERY,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -212,11 +217,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  SERVER_FAILURE,
-				OPCODE:        STATUS,
+				ResponseCode:  parser.SERVER_FAILURE,
+				OPCODE:        parser.STATUS,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -232,11 +237,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				ResponseCode:  NAME_ERROR,
-				OPCODE:        STATUS,
+				ResponseCode:  parser.NAME_ERROR,
+				OPCODE:        parser.STATUS,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -252,11 +257,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				OPCODE:        STATUS,
-				ResponseCode:  NOT_IMPLEMENTED,
+				OPCODE:        parser.STATUS,
+				ResponseCode:  parser.NOT_IMPLEMENTED,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -272,11 +277,11 @@ func TestHeaderToBinary(t *testing.T) {
 				0b00000000, 0b00000100,
 				0b00000000, 0b00000101,
 			},
-			input: Header{
+			input: parser.Header{
 				ID:            1,
 				IsQuery:       false,
-				OPCODE:        STATUS,
-				ResponseCode:  REFUSED,
+				OPCODE:        parser.STATUS,
+				ResponseCode:  parser.REFUSED,
 				QuestionCount: 2,
 				AnswerCount:   3,
 				NSCount:       4,
@@ -307,15 +312,14 @@ func TestHeaderToBinary(t *testing.T) {
 func TestParseQuestion(t *testing.T) {
 	tests := []struct {
 		input  []byte
-		expect Question
+		expect parser.Question
 	}{
 		{
 			input: []byte{
-				0b00000100, 0b01100010, 0b01101100, 0b01101111, 0b01100111,
-				0b00000111, 0b01100101, 0b01111000, 0b01100001, 0b01101101, 0b01110000, 0b01101100, 0b01100101,
-				0b00000011, 0b01100011, 0b01101111, 0b01101101,
-
-				0b00000000,
+				4, 'b', 'l', 'o', 'g',
+				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+				3, 'c', 'o', 'm',
+				0,
 
 				0b00000000,
 				0b00000001,
@@ -323,9 +327,9 @@ func TestParseQuestion(t *testing.T) {
 				0b00000000,
 				0b00000001,
 			},
-			expect: Question{
-				Class: IN,
-				Type:  A,
+			expect: parser.Question{
+				Class: parser.IN,
+				Type:  parser.A,
 				Labels: []string{
 					"blog",
 					"example",
@@ -335,7 +339,7 @@ func TestParseQuestion(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		is := ParseQuestion(test.input)
+		is := parser.ParseQuestion(bytes.NewBuffer(test.input))
 		if is.Class != test.expect.Class {
 			t.Fatalf("class dont match")
 		}
@@ -355,26 +359,25 @@ func TestParseQuestion(t *testing.T) {
 	}
 }
 
-func TestToBinary(t *testing.T) {
+func TestQuestionToBinary(t *testing.T) {
 	tests := []struct {
-		input  Question
+		input  parser.Question
 		expect []byte
 	}{
 		{
-			input: Question{
+			input: parser.Question{
 				Labels: []string{
 					"blog",
 					"example",
 					"com",
 				},
-				Class: IN,
+				Class: parser.IN,
 			},
 			expect: []byte{
-				0b00000100, 0b01100010, 0b01101100, 0b01101111, 0b01100111,
-				0b00000111, 0b01100101, 0b01111000, 0b01100001, 0b01101101, 0b01110000, 0b01101100, 0b01100101,
-				0b00000011, 0b01100011, 0b01101111, 0b01101101,
-
-				0b00000000,
+				4, 'b', 'l', 'o', 'g',
+				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+				3, 'c', 'o', 'm',
+				0,
 
 				0b00000000,
 				0b00000000,
@@ -398,4 +401,117 @@ func TestToBinary(t *testing.T) {
 
 		}
 	}
+}
+
+func TestParseAnswer(t *testing.T) {
+	tests := []struct {
+		input  []byte
+		expect parser.Answer
+	}{
+		{
+			input: []byte{
+				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+				3, 'c', 'o', 'm',
+				0,
+
+				0b00000000, 0b00000011,
+
+				0b00000000, 0b00000001,
+
+				0b00000000, 0b00000000, 0b00000100, 0b00000000,
+
+				0, 4, 1, 2, 3, 4,
+			},
+			expect: parser.Answer{
+				Labels: []string{
+					"example",
+					"com",
+				},
+				Type:  parser.MD,
+				TTL:   1024,
+				Class: parser.IN,
+				Data:  []byte{1, 2, 3, 4},
+			},
+		},
+	}
+	for _, test := range tests {
+		is := parser.ParseAnswer(bytes.NewBuffer(test.input))
+		if len(is.Labels) != len(test.expect.Labels) {
+			t.Fatalf("labels length dont match up")
+		}
+		for i := 0; i < len(is.Labels); i++ {
+			if is.Labels[i] != test.expect.Labels[i] {
+				t.Fatalf("label dont match up is: %s want: %s", is.Labels[i], test.expect.Labels[i])
+			}
+
+		}
+		if is.Type != test.expect.Type {
+			t.Fatalf("type dont match up is: %d want: %d", is.Type, test.expect.Type)
+		}
+		if is.Class != test.expect.Class {
+			t.Fatalf("class dont match up is: %d want: %d", is.Class, test.expect.Class)
+		}
+		if is.TTL != test.expect.TTL {
+			t.Fatalf("ttl dont match up is: %d want: %d", is.TTL, test.expect.TTL)
+		}
+
+		if len(is.Data) != len(test.expect.Data) {
+			t.Fatalf("data length dont match up is: %d want: %d", len(is.Data), len(test.expect.Data))
+		}
+		for i := 0; i < len(is.Data); i++ {
+			if is.Data[i] != test.expect.Data[i] {
+				t.Fatalf("data dont match is: %d want: %d i: %d", is.Data[i], test.expect.Data[i], i)
+
+			}
+
+		}
+	}
+}
+
+func TestAnswerToBinary(t *testing.T) {
+	tests := []struct {
+		input  parser.Answer
+		expect []byte
+	}{
+		{
+			input: parser.Answer{
+				Labels: []string{
+					"example",
+					"com",
+				},
+				Type:  parser.A,
+				TTL:   1024,
+				Class: parser.IN,
+				Data:  []byte{1, 1, 1, 1},
+			},
+			expect: []byte{
+				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+				3, 'c', 'o', 'm',
+				0,
+
+				0b00000000, 0b00000001,
+
+				0b00000000, 0b00000001,
+
+				0b00000000, 0b00000000, 0b00000100, 0b00000000,
+
+				0, 4, 1, 1, 1, 1,
+			},
+		},
+	}
+	for _, test := range tests {
+		is, err := test.input.ToBinary()
+		if err != nil {
+			t.Fatalf("should not error")
+		}
+		if string(is) != string(test.expect) {
+			t.Logf("is:")
+			for _, n := range is {
+				t.Logf("%08b ", n) // prints 00000000 11111101
+			}
+			t.Fatalf("dont match")
+		}
+
+	}
+
 }
