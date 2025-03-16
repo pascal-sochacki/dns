@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -33,23 +32,8 @@ type Question struct {
 	Class  QClass
 }
 
-func ParseQuestion(buffer *bytes.Buffer) Question {
-	labels := []string{}
-	for {
-		length, err := buffer.ReadByte()
-		if length == 0 {
-			break
-		}
-		if err != nil {
-			os.Exit(1)
-		}
-		label := make([]byte, length)
-		_, err = buffer.Read(label)
-		if err != nil {
-			os.Exit(1)
-		}
-		labels = append(labels, string(label))
-	}
+func ParseQuestion(buffer *MessageBuffer) Question {
+	labels, _ := buffer.ReadLabels()
 	buf := make([]byte, 2)
 	buffer.Read(buf)
 	qtype := binary.BigEndian.Uint16(buf)

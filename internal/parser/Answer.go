@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -16,56 +15,21 @@ type Answer struct {
 	Data   []byte
 }
 
-func ParseAnswer(buffer *bytes.Buffer) Answer {
-	labels := []string{}
-	for {
-		length, err := buffer.ReadByte()
-		if length == 0 {
-			break
-		}
-		if err != nil {
-			os.Exit(1)
-		}
-		label := make([]byte, length)
-		_, err = buffer.Read(label)
-		if err != nil {
-			os.Exit(1)
-		}
-		fmt.Printf("%08b ", length)
-		for i := 0; i < len(label); i++ {
-			fmt.Printf("%08b ", label[i])
-
-		}
-		labels = append(labels, string(label))
-	}
-
-	buf := make([]byte, 2)
-
-	buffer.Read(buf)
-	qtype := binary.BigEndian.Uint16(buf)
-
-	buffer.Read(buf)
-	class := binary.BigEndian.Uint16(buf)
-
-	buf = make([]byte, 4)
-	buffer.Read(buf)
-	ttl := binary.BigEndian.Uint32(buf)
-
-	buf = make([]byte, 2)
-	buffer.Read(buf)
-	length := binary.BigEndian.Uint16(buf)
-
-	buf = make([]byte, length)
-	buffer.Read(buf)
-
+func ParseAnswer(buffer *MessageBuffer) Answer {
+	labels, _ := buffer.ReadLabels()
+	t := buffer.ReadUint16()
+	class := buffer.ReadUint16()
+	ttl := buffer.ReadUint32()
+	length := buffer.ReadUint16()
+	data := make([]byte, length)
+	buffer.Read(data)
 	return Answer{
 		Labels: labels,
-		TTL:    ttl,
-		Type:   QType(qtype),
+		Type:   QType(t),
 		Class:  QClass(class),
-		Data:   buf,
+		TTL:    ttl,
+		Data:   data,
 	}
-
 }
 
 func (answer Answer) ToBinary() ([]byte, error) {

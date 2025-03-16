@@ -47,23 +47,10 @@ func main() {
 	}
 	reponse := make([]byte, 1024)
 	_, _, _ = conn.ReadFrom(reponse)
-	buffer := bytes.NewBuffer(reponse)
-	responseHeader := parser.ParseHeader(buffer)
-	println(responseHeader.String())
-	for i := 0; i < int(responseHeader.QuestionCount); i++ {
-		question := parser.ParseQuestion(buffer)
-		println(question.String())
+	println("RAW")
+	for _, v := range reponse {
+		fmt.Printf("%08b\n", v)
 	}
-
-	println("AnswerCount")
-	for i := 0; i < int(responseHeader.AnswerCount); i++ {
-		question := parser.ParseAnswer(buffer)
-		println(question.String())
-	}
-	println("NSCount")
-	for i := 0; i < int(responseHeader.NSCount); i++ {
-		question := parser.ParseAnswer(buffer)
-		println(question.String())
-	}
+	println("RAW")
 
 }

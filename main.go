@@ -18,7 +18,7 @@ func main() {
 	for {
 		request := make([]byte, 1024)
 		_, addr, _ := conn.ReadFrom(request)
-		requestheader, resquestquestion := ParseMessage(request)
+		requestheader, resquestquestion, _ := ParseMessage(request)
 
 		response := new(bytes.Buffer)
 		responseHeader := parser.Header{
@@ -46,9 +46,17 @@ func main() {
 
 }
 
-func ParseMessage(buf []byte) (parser.Header, parser.Question) {
-	header := parser.ParseHeader(bytes.NewBuffer(buf[:4*3]))
-	question := parser.ParseQuestion(bytes.NewBuffer(buf[4*3:]))
+func ParseMessage(buf []byte) (parser.Header, parser.Question, []parser.Answer) {
+	buffer := parser.NewLookBackBuffer(buf)
+
+	header := parser.ParseHeader(buffer)
+	question := parser.ParseQuestion(buffer)
+
+	ns := []parser.Answer{}
+	if header.NSCount > 0 {
+		ns = append(ns, parser.ParseAnswer(buffer))
+
+	}
 	slog.Info("question", "type", question.Type)
-	return header, question
+	return header, question, ns
 }

@@ -41,14 +41,9 @@ type Header struct {
 	ARCount       uint16
 }
 
-func ParseHeader(buffer *bytes.Buffer) Header {
-	id := make([]byte, 2)
-	buffer.Read(id)
-	parsedId := binary.BigEndian.Uint16(id)
-
-	flags := make([]byte, 2)
-	buffer.Read(flags)
-	flagsNumber := binary.BigEndian.Uint16(flags)
+func ParseHeader(buffer *MessageBuffer) Header {
+	parsedId := buffer.ReadUint16()
+	flagsNumber := buffer.ReadUint16()
 
 	opcode := QUERY
 
@@ -60,18 +55,10 @@ func ParseHeader(buffer *bytes.Buffer) Header {
 
 	rcode := flagsNumber & (0b00000000_00001111)
 
-	count := make([]byte, 2)
-	buffer.Read(count)
-	questionCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	answerCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	nsCount := binary.BigEndian.Uint16(count)
-
-	buffer.Read(count)
-	arCount := binary.BigEndian.Uint16(count)
+	questionCount := buffer.ReadUint16()
+	answerCount := buffer.ReadUint16()
+	nsCount := buffer.ReadUint16()
+	arCount := buffer.ReadUint16()
 
 	return Header{
 		ID:            parsedId,

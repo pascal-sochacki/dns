@@ -1,165 +1,207 @@
 package main
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/pascal-sochacki/dns/internal/parser"
 )
 
-func TestParseHeader(t *testing.T) {
+func TestParseMessage(t *testing.T) {
 	tests := []struct {
-		input  []byte
-		expect parser.Header
+		input              []byte
+		header             parser.Header
+		question           parser.Question
+		nameserverResouece []parser.Answer
 	}{
 		{
 			input: []byte{
 				0b00000000, 0b00000001,
 				0b00000000, 0b00000000,
 				0b00000000, 0b00000001,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
+				0b00000000, 0b00000000,
+				0b00000000, 0b00000000,
+				0b00000000, 0b00000000,
+
+				4, 'b', 'l', 'o', 'g',
+				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+				3, 'c', 'o', 'm',
+				0,
+
+				0b00000000,
+				0b00000001,
+
+				0b00000000,
+				0b00000001,
 			},
-			expect: parser.Header{
+			header: parser.Header{
 				ID:            1,
 				IsQuery:       true,
 				ResponseCode:  parser.NO_ERROR,
 				OPCODE:        parser.QUERY,
 				QuestionCount: 1,
-				AnswerCount:   2,
-				NSCount:       3,
-				ARCount:       4,
+				AnswerCount:   0,
+				NSCount:       0,
+				ARCount:       0,
+			},
+			question: parser.Question{
+				Class: parser.IN,
+				Type:  parser.A,
+				Labels: []string{
+					"blog",
+					"example",
+					"com",
+				},
 			},
 		},
 		{
 			input: []byte{
+				0b00000000, 0b00001100,
+				0b10000000, 0b00000000,
 				0b00000000, 0b00000001,
-				0b10001000, 0b00000001,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
+				0b00000000, 0b00000000,
 				0b00000000, 0b00000101,
-			},
-			expect: parser.Header{
-				ID:            1,
-				IsQuery:       false,
-				ResponseCode:  parser.FORMAT_ERROR,
-				OPCODE:        parser.IQUERY,
-				QuestionCount: 2,
-				AnswerCount:   3,
-				NSCount:       4,
-				ARCount:       5,
-			},
-		},
-		{
-			input: []byte{
+				0b00000000, 0b00001001,
+
+				0b00000010, 0b01100101, 0b01110101,
+				0b00000000,
 				0b00000000, 0b00000001,
-				0b10010000, 0b00000010,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
-				0b00000000, 0b00000101,
-			},
-			expect: parser.Header{
-				ID:            1,
-				IsQuery:       false,
-				ResponseCode:  parser.SERVER_FAILURE,
-				OPCODE:        parser.STATUS,
-				QuestionCount: 2,
-				AnswerCount:   3,
-				NSCount:       4,
-				ARCount:       5,
-			},
-		},
-		{
-			input: []byte{
 				0b00000000, 0b00000001,
-				0b10010000, 0b00000011,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
-				0b00000000, 0b00000101,
+
+				// compression with offset
+				0b11000000, 0b00001100,
+
+				0b00000000, 0b00000010, 0b00000000, 0b00000001,
+				0b00000000, 0b00000010, 0b10100011, 0b00000000,
+				0b00000000, 0b00001000, 0b00000001, 0b01110111,
+				0b00000011, 0b01100100, 0b01101110, 0b01110011,
+				0b11000000, 0b00001100, 0b11000000, 0b00001100,
+				0b00000000, 0b00000010, 0b00000000, 0b00000001,
+				0b00000000, 0b00000010, 0b10100011, 0b00000000,
+				0b00000000, 0b00000100, 0b00000001, 0b01111000,
+				0b11000000, 0b00100010, 0b11000000, 0b00001100,
+				0b00000000, 0b00000010, 0b00000000, 0b00000001,
+				0b00000000, 0b00000010, 0b10100011, 0b00000000,
+				0b00000000, 0b00000100, 0b00000001, 0b01111001,
+				0b11000000, 0b00100010, 0b11000000, 0b00001100,
+				0b00000000, 0b00000010, 0b00000000, 0b00000001,
+				0b00000000, 0b00000010, 0b10100011, 0b00000000,
+				0b00000000, 0b00000101, 0b00000010, 0b01100010,
+				0b01100101, 0b11000000, 0b00100010, 0b11000000,
+				0b00001100, 0b00000000, 0b00000010, 0b00000000,
+				0b00000001, 0b00000000, 0b00000010, 0b10100011,
+				0b00000000, 0b00000000, 0b00000101, 0b00000010,
+				0b01110011, 0b01101001, 0b11000000, 0b00100010,
+				0b11000000, 0b00100000, 0b00000000, 0b00000001,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00000100,
+				0b11000010, 0b00000000, 0b00011001, 0b00011100,
+				0b11000000, 0b00110100, 0b00000000, 0b00000001,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00000100,
+				0b10111001, 0b10010111, 0b10001101, 0b00000001,
+				0b11000000, 0b01000100, 0b00000000, 0b00000001,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00000100,
+				0b11000010, 0b10010010, 0b01101010, 0b01011010,
+				0b11000000, 0b01010100, 0b00000000, 0b00000001,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00000100,
+				0b10010101, 0b00100110, 0b00000001, 0b00011010,
+				0b11000000, 0b01100101, 0b00000000, 0b00000001,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00000100,
+				0b11000001, 0b00000010, 0b11011101, 0b00111110,
+				0b11000000, 0b00100000, 0b00000000, 0b00011100,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00010000,
+				0b00100000, 0b00000001, 0b00000110, 0b01111000,
+				0b00000000, 0b00100000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b00101000,
+				0b11000000, 0b00110100, 0b00000000, 0b00011100,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00010000,
+				0b00101010, 0b00000010, 0b00000101, 0b01101000,
+				0b11111110, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b01100101, 0b01110101,
+				0b11000000, 0b01000100, 0b00000000, 0b00011100,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00010000,
+				0b00100000, 0b00000001, 0b00000110, 0b01111100,
+				0b00010000, 0b00010000, 0b00000000, 0b00100011,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b01010011,
+				0b11000000, 0b01100101, 0b00000000, 0b00011100,
+				0b00000000, 0b00000001, 0b00000000, 0b00000010,
+				0b10100011, 0b00000000, 0b00000000, 0b00010000,
+				0b00100000, 0b00000001, 0b00010100, 0b01110000,
+				0b10000000, 0b00000000, 0b00000001, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b01100010,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000, 0b00000000, 0b00000000, 0b00000000,
+				0b00000000,
 			},
-			expect: parser.Header{
-				ID:            1,
-				IsQuery:       false,
-				ResponseCode:  parser.NAME_ERROR,
-				OPCODE:        parser.STATUS,
-				QuestionCount: 2,
-				AnswerCount:   3,
-				NSCount:       4,
-				ARCount:       5,
+			header: parser.Header{
+				ID:            12,
+				QuestionCount: 1,
+				NSCount:       5,
+				ARCount:       9,
 			},
-		},
-		{
-			input: []byte{
-				0b00000000, 0b00000001,
-				0b10010000, 0b00000100,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
-				0b00000000, 0b00000101,
+			question: parser.Question{
+				Class:  parser.IN,
+				Type:   parser.A,
+				Labels: []string{"eu"},
 			},
-			expect: parser.Header{
-				ID:            1,
-				IsQuery:       false,
-				OPCODE:        parser.STATUS,
-				ResponseCode:  parser.NOT_IMPLEMENTED,
-				QuestionCount: 2,
-				AnswerCount:   3,
-				NSCount:       4,
-				ARCount:       5,
-			},
-		},
-		{
-			input: []byte{
-				0b00000000, 0b00000001,
-				0b10010000, 0b00000101,
-				0b00000000, 0b00000010,
-				0b00000000, 0b00000011,
-				0b00000000, 0b00000100,
-				0b00000000, 0b00000101,
-			},
-			expect: parser.Header{
-				ID:            1,
-				IsQuery:       false,
-				OPCODE:        parser.STATUS,
-				ResponseCode:  parser.REFUSED,
-				QuestionCount: 2,
-				AnswerCount:   3,
-				NSCount:       4,
-				ARCount:       5,
+			nameserverResouece: []parser.Answer{
+				{
+					Labels: []string{"eu"},
+					Type:   parser.NS,
+					Class:  parser.IN,
+					TTL:    172800,
+					// Looks like data can also be compressed
+					Data: []byte{1, 'w', 3, 'd', 'n', 's', 2, 'e'},
+				},
 			},
 		},
 	}
 	for _, test := range tests {
-		is := parser.ParseHeader(bytes.NewBuffer(test.input))
+		header, question, ns := ParseMessage(test.input)
+		compareHeaders(t, header, test.header)
+		compareQuestion(t, question, test.question)
+		if len(test.nameserverResouece) > 0 {
+			compareAnswer(t, ns[0], test.nameserverResouece[0])
+		}
 
-		if is.ID != test.expect.ID {
-			t.Fatalf("id dont match is %d wanted %d", is.ID, test.expect.ID)
-		}
-		if is.QuestionCount != test.expect.QuestionCount {
-			t.Fatalf("question count dont match is %d wanted %d", is.QuestionCount, test.expect.QuestionCount)
-		}
-		if is.AnswerCount != test.expect.AnswerCount {
-			t.Fatalf("answer count dont match is %d wanted %d", is.AnswerCount, test.expect.AnswerCount)
-		}
-		if is.NSCount != test.expect.NSCount {
-			t.Fatalf("ns count dont match is %d wanted %d", is.NSCount, test.expect.NSCount)
-		}
-		if is.ARCount != test.expect.ARCount {
-			t.Fatalf("ar count dont match is %d wanted %d", is.ARCount, test.expect.ARCount)
-		}
-		if is.IsQuery != test.expect.IsQuery {
-			t.Fatalf("is query dont match is %t wanted %t", is.IsQuery, test.expect.IsQuery)
-		}
-		if is.OPCODE != test.expect.OPCODE {
-			t.Fatalf("op code dont match is %d wanted %d", is.OPCODE, test.expect.OPCODE)
-		}
-		if is.ResponseCode != test.expect.ResponseCode {
-			t.Fatalf("response code dont match is %d wanted %d", is.ResponseCode, test.expect.ResponseCode)
-		}
+	}
+}
+
+func compareHeaders(t *testing.T, is parser.Header, expect parser.Header) {
+	t.Helper()
+	if is.ID != expect.ID {
+		t.Fatalf("id dont match is %d wanted %d", is.ID, expect.ID)
+	}
+	if is.QuestionCount != expect.QuestionCount {
+		t.Fatalf("question count dont match is %d wanted %d", is.QuestionCount, expect.QuestionCount)
+	}
+	if is.AnswerCount != expect.AnswerCount {
+		t.Fatalf("answer count dont match is %d wanted %d", is.AnswerCount, expect.AnswerCount)
+	}
+	if is.NSCount != expect.NSCount {
+		t.Fatalf("ns count dont match is %d wanted %d", is.NSCount, expect.NSCount)
+	}
+	if is.ARCount != expect.ARCount {
+		t.Fatalf("ar count dont match is %d wanted %d", is.ARCount, expect.ARCount)
+	}
+	if is.IsQuery != expect.IsQuery {
+		t.Fatalf("is query dont match is %t wanted %t", is.IsQuery, expect.IsQuery)
+	}
+	if is.OPCODE != expect.OPCODE {
+		t.Fatalf("op code dont match is %d wanted %d", is.OPCODE, expect.OPCODE)
+	}
+	if is.ResponseCode != expect.ResponseCode {
+		t.Fatalf("response code dont match is %d wanted %d", is.ResponseCode, expect.ResponseCode)
 	}
 }
 
@@ -294,68 +336,40 @@ func TestHeaderToBinary(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error should not be present")
 		}
-
-		if string(is) != string(test.expect) {
-			t.Logf("is:")
-			for _, n := range is {
-				t.Logf("%08b ", n) // prints 00000000 11111101
-			}
-			t.Logf("want:")
-			for _, n := range test.expect {
-				t.Logf("%08b ", n) // prints 00000000 11111101
-			}
-			t.Fatalf("strings dont match")
-		}
+		CompareBytes(t, is, test.expect)
 	}
 }
 
-func TestParseQuestion(t *testing.T) {
-	tests := []struct {
-		input  []byte
-		expect parser.Question
-	}{
-		{
-			input: []byte{
-				4, 'b', 'l', 'o', 'g',
-				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
-				3, 'c', 'o', 'm',
-				0,
-
-				0b00000000,
-				0b00000001,
-
-				0b00000000,
-				0b00000001,
-			},
-			expect: parser.Question{
-				Class: parser.IN,
-				Type:  parser.A,
-				Labels: []string{
-					"blog",
-					"example",
-					"com",
-				},
-			},
-		},
+func CompareBytes(t *testing.T, is []byte, expect []byte) {
+	t.Helper()
+	if string(is) != string(expect) {
+		t.Logf("is:")
+		for _, n := range is {
+			t.Logf("%08b ", n) // prints 00000000 11111101
+		}
+		t.Logf("want:")
+		for _, n := range expect {
+			t.Logf("%08b ", n) // prints 00000000 11111101
+		}
+		t.Fatalf("strings dont match")
 	}
-	for _, test := range tests {
-		is := parser.ParseQuestion(bytes.NewBuffer(test.input))
-		if is.Class != test.expect.Class {
-			t.Fatalf("class dont match")
-		}
-		if is.Type != test.expect.Type {
-			t.Fatalf("type dont match")
-		}
-		if len(is.Labels) != len(test.expect.Labels) {
-			t.Fatalf("label length dont match")
-		}
-		for i := 0; i < len(is.Labels); i++ {
-			if is.Labels[i] != test.expect.Labels[i] {
-				t.Fatalf("label not match is: %s should: %s", is.Labels[i], test.expect.Labels[i])
-			}
+}
 
+func compareQuestion(t *testing.T, is parser.Question, expect parser.Question) {
+	t.Helper()
+	if is.Class != expect.Class {
+		t.Fatalf("class dont match")
+	}
+	if is.Type != expect.Type {
+		t.Fatalf("type dont match")
+	}
+	if len(is.Labels) != len(expect.Labels) {
+		t.Fatalf("label length dont match")
+	}
+	for i := 0; i < len(is.Labels); i++ {
+		if is.Labels[i] != expect.Labels[i] {
+			t.Fatalf("label not match is: %s should: %s", is.Labels[i], expect.Labels[i])
 		}
-
 	}
 }
 
@@ -392,79 +406,40 @@ func TestQuestionToBinary(t *testing.T) {
 		if err != nil {
 			t.Fatalf("should not error")
 		}
-		if string(is) != string(test.expect) {
-			t.Logf("is:")
-			for _, n := range is {
-				t.Logf("%08b ", n) // prints 00000000 11111101
-			}
-			t.Fatalf("dont match")
-
-		}
+		CompareBytes(t, is, test.expect)
 	}
 }
 
-func TestParseAnswer(t *testing.T) {
-	tests := []struct {
-		input  []byte
-		expect parser.Answer
-	}{
-		{
-			input: []byte{
-				7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
-				3, 'c', 'o', 'm',
-				0,
-
-				0b00000000, 0b00000011,
-
-				0b00000000, 0b00000001,
-
-				0b00000000, 0b00000000, 0b00000100, 0b00000000,
-
-				0, 4, 1, 2, 3, 4,
-			},
-			expect: parser.Answer{
-				Labels: []string{
-					"example",
-					"com",
-				},
-				Type:  parser.MD,
-				TTL:   1024,
-				Class: parser.IN,
-				Data:  []byte{1, 2, 3, 4},
-			},
-		},
+func compareAnswer(t *testing.T, is parser.Answer, expect parser.Answer) {
+	t.Helper()
+	if len(is.Labels) != len(expect.Labels) {
+		t.Fatalf("labels length dont match up")
 	}
-	for _, test := range tests {
-		is := parser.ParseAnswer(bytes.NewBuffer(test.input))
-		if len(is.Labels) != len(test.expect.Labels) {
-			t.Fatalf("labels length dont match up")
-		}
-		for i := 0; i < len(is.Labels); i++ {
-			if is.Labels[i] != test.expect.Labels[i] {
-				t.Fatalf("label dont match up is: %s want: %s", is.Labels[i], test.expect.Labels[i])
-			}
-
-		}
-		if is.Type != test.expect.Type {
-			t.Fatalf("type dont match up is: %d want: %d", is.Type, test.expect.Type)
-		}
-		if is.Class != test.expect.Class {
-			t.Fatalf("class dont match up is: %d want: %d", is.Class, test.expect.Class)
-		}
-		if is.TTL != test.expect.TTL {
-			t.Fatalf("ttl dont match up is: %d want: %d", is.TTL, test.expect.TTL)
+	for i := 0; i < len(is.Labels); i++ {
+		if is.Labels[i] != expect.Labels[i] {
+			t.Fatalf("label dont match up is: %s want: %s", is.Labels[i], expect.Labels[i])
 		}
 
-		if len(is.Data) != len(test.expect.Data) {
-			t.Fatalf("data length dont match up is: %d want: %d", len(is.Data), len(test.expect.Data))
-		}
-		for i := 0; i < len(is.Data); i++ {
-			if is.Data[i] != test.expect.Data[i] {
-				t.Fatalf("data dont match is: %d want: %d i: %d", is.Data[i], test.expect.Data[i], i)
+	}
+	if is.Type != expect.Type {
+		t.Fatalf("type dont match up is: %d want: %d", is.Type, expect.Type)
+	}
+	if is.Class != expect.Class {
+		t.Fatalf("class dont match up is: %d want: %d", is.Class, expect.Class)
+	}
+	if is.TTL != expect.TTL {
+		t.Fatalf("ttl dont match up is: %d want: %d", is.TTL, expect.TTL)
+	}
 
-			}
+	if len(is.Data) != len(expect.Data) {
+		t.Fatalf("data length dont match up is: %d want: %d", len(is.Data), len(expect.Data))
+	}
+	for i := 0; i < len(is.Data); i++ {
+		if is.Data[i] != expect.Data[i] {
+			t.Fatalf("data dont match is: %d want: %d i: %d", is.Data[i], expect.Data[i], i)
 
 		}
+
 	}
 }
 
@@ -504,14 +479,7 @@ func TestAnswerToBinary(t *testing.T) {
 		if err != nil {
 			t.Fatalf("should not error")
 		}
-		if string(is) != string(test.expect) {
-			t.Logf("is:")
-			for _, n := range is {
-				t.Logf("%08b ", n) // prints 00000000 11111101
-			}
-			t.Fatalf("dont match")
-		}
-
+		CompareBytes(t, is, test.expect)
 	}
 
 }
