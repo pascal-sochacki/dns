@@ -53,9 +53,8 @@ func ParseMessage(buf []byte) (parser.Header, parser.Question, []parser.Answer) 
 	question := parser.ParseQuestion(buffer)
 
 	ns := []parser.Answer{}
-	if header.NSCount > 0 {
+	for i := 0; i < int(header.NSCount); i++ {
 		ns = append(ns, parser.ParseAnswer(buffer))
-
 	}
 	slog.Info("question", "type", question.Type)
 	return header, question, ns

@@ -160,8 +160,35 @@ func TestParseMessage(t *testing.T) {
 					Type:   parser.NS,
 					Class:  parser.IN,
 					TTL:    172800,
-					// Looks like data can also be compressed
-					Data: []byte{1, 'w', 3, 'd', 'n', 's', 2, 'e'},
+					Data:   []byte{1, 'w', 3, 'd', 'n', 's', 2, 'e', 'u', 0},
+				},
+				{
+					Labels: []string{"eu"},
+					Type:   parser.NS,
+					Class:  parser.IN,
+					TTL:    172800,
+					Data:   []byte{1, 'x', 3, 'd', 'n', 's', 2, 'e', 'u', 0},
+				},
+				{
+					Labels: []string{"eu"},
+					Type:   parser.NS,
+					Class:  parser.IN,
+					TTL:    172800,
+					Data:   []byte{1, 'y', 3, 'd', 'n', 's', 2, 'e', 'u', 0},
+				},
+				{
+					Labels: []string{"eu"},
+					Type:   parser.NS,
+					Class:  parser.IN,
+					TTL:    172800,
+					Data:   []byte{2, 'b', 'e', 3, 'd', 'n', 's', 2, 'e', 'u', 0},
+				},
+				{
+					Labels: []string{"eu"},
+					Type:   parser.NS,
+					Class:  parser.IN,
+					TTL:    172800,
+					Data:   []byte{2, 's', 'i', 3, 'd', 'n', 's', 2, 'e', 'u', 0},
 				},
 			},
 		},
@@ -170,8 +197,9 @@ func TestParseMessage(t *testing.T) {
 		header, question, ns := ParseMessage(test.input)
 		compareHeaders(t, header, test.header)
 		compareQuestion(t, question, test.question)
-		if len(test.nameserverResouece) > 0 {
-			compareAnswer(t, ns[0], test.nameserverResouece[0])
+
+		for i := 0; i < int(header.NSCount); i++ {
+			compareAnswer(t, ns[i], test.nameserverResouece[i])
 		}
 
 	}

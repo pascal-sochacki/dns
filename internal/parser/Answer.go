@@ -17,15 +17,31 @@ type Answer struct {
 
 func ParseAnswer(buffer *MessageBuffer) Answer {
 	labels, _ := buffer.ReadLabels()
-	t := buffer.ReadUint16()
+	t := QType(buffer.ReadUint16())
 	class := buffer.ReadUint16()
 	ttl := buffer.ReadUint32()
 	length := buffer.ReadUint16()
-	data := make([]byte, length)
-	buffer.Read(data)
+	var data []byte
+
+	switch t {
+	case NS:
+		l, _ := buffer.ReadLabels()
+		buf := new(bytes.Buffer)
+		for i := 0; i < len(l); i++ {
+			size := byte(len(l[i]))
+			binary.Write(buf, binary.BigEndian, size)
+			buf.Write([]byte(l[i]))
+		}
+		buf.WriteByte(0)
+		data = buf.Bytes()
+
+	default:
+		data = make([]byte, length)
+		buffer.Read(data)
+	}
 	return Answer{
 		Labels: labels,
-		Type:   QType(t),
+		Type:   t,
 		Class:  QClass(class),
 		TTL:    ttl,
 		Data:   data,
